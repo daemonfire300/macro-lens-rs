@@ -1,13 +1,13 @@
 [package]
 name = "pl-lens-macros"
-version = "1.0.1"
-edition = "2018"
-authors = ["Chris Campbell <campbell@plausible.coop>"]
+version = "2.0.0"
+edition = "2024"
+authors = ["Chris Campbell <campbell@plausible.coop>", "Julius Foitzik <info@accountr.eu>"]
 license = "MIT"
 description = "Temporary crate used to implement the `lens!` procedural macro."
 keywords = ["plausible", "lens", "functional"]
-homepage = "https://github.com/plausiblelabs/lens-rs"
-repository = "https://github.com/plausiblelabs/lens-rs"
+homepage = "https://github.com/daemonfire300/lens-rs"
+repository = "https://github.com/daemonfire300/lens-rs"
 readme = "README.md"
 
 [lib]
@@ -17,4 +17,4 @@ proc-macro = true
 proc-macro2 = "1.0"
 proc-macro-hack = "0.5"
 quote = "1.0"
-syn = { version = "1.0", features = ["full", "extra-traits"] }
+syn = { version = "2.0", features = ["full", "extra-traits"] }
