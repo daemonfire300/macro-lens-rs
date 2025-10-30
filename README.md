@@ -16,6 +16,12 @@
 
 This Rust library provides support for lenses, which are a mechanism in functional programming for focusing on a part of a complex data structure.
 
+## Development
+
+If you are using nix the current setup is flake-based, because that is what I am most comfortable with. I am open to flake-like setups using npins(?) etc. but I need to gather more experience before switching to that.
+
+I run my dev-setup with `nix develop -c zsh`. Note `nix develop` is the less stable/experimental version of `nix-shell`.
+
 ## Usage
 
 Add a dependency to your `Cargo.toml`:
