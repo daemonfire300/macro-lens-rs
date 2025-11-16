@@ -1,16 +1,15 @@
 [package]
-name = "pl-lens"
+name = "lens"
 version = "2.0.0"
 edition = "2024"
 authors = ["Chris Campbell <campbell@plausible.coop>", "Julius Foitzik <info@accountr.eu>"]
 license = "MIT"
 description = "Provides support for lenses, which are a mechanism in functional programming for focusing on a part of a complex data structure."
-keywords = ["plausible", "lens", "functional"]
+keywords = ["lens", "functional"]
 homepage = "https://github.com/daemonfire300/lens-rs"
 repository = "https://github.com/daemonfire300/lens-rs"
 readme = "README.md"
 
 [dependencies]
-pl-lens-derive = { path = "../lens-derive", version = "2.0.0" }
-pl-lens-macros = { path = "../lens-macros", version = "2.0.0" }
-proc-macro-hack = "0.5"
+lens-derive = { path = "../lens-derive", version = "2.0.0" }
+lens-macros = { path = "../lens-macros", version = "2.0.0" }

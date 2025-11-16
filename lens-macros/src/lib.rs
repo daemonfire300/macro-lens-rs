@@ -2,17 +2,17 @@
 // Copyright (c) 2015-2019 Plausible Labs Cooperative, Inc.
 // All rights reserved.
 //
-
-extern crate proc_macro;
+// Copyright (c) 2025 Julius Foitzik on derivative work
+// All rights reserved.
+//
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use proc_macro_hack::proc_macro_hack;
 use quote::{format_ident, quote};
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, Expr, ExprField, Member};
+use syn::{Expr, ExprField, Member, parse_macro_input};
 
-#[proc_macro_hack]
+#[proc_macro]
 pub fn lens(input: TokenStream) -> TokenStream {
     // Parse the input tokens into a syntax tree
     let expr = parse_macro_input!(input as Expr);
@@ -75,7 +75,7 @@ pub fn lens(input: TokenStream) -> TokenStream {
 
     // Build the output
     let expanded = quote! {
-        pl_lens::compose_lens!(#(#lens_exprs),*);
+        lens::compose_lens!(#(#lens_exprs),*);
     };
 
     // Hand the output tokens back to the compiler
@@ -95,7 +95,10 @@ fn extract_lens_parts(field_access: &ExprField) -> Result<Vec<String>, syn::Erro
             // We hit the root of the expression; extract the struct name
             let path_segments = &base_expr_path.path.segments;
             if path_segments.len() > 1 {
-                Err(syn::Error::new(field_access.span(), "lens!() expression must start with unqualified struct name, e.g. `Struct.outer_field.inner_field`"))
+                Err(syn::Error::new(
+                    field_access.span(),
+                    "lens!() expression must start with unqualified struct name, e.g. `Struct.outer_field.inner_field`",
+                ))
             } else {
                 let struct_name = path_segments[0].ident.to_string();
                 Ok(vec![struct_name])
@@ -105,9 +108,10 @@ fn extract_lens_parts(field_access: &ExprField) -> Result<Vec<String>, syn::Erro
             // This is another field access; extract the base portion first
             extract_lens_parts(&base_field_access)
         }
-        _ => {
-            Err(syn::Error::new(field_access.span(), "lens!() expression must be structured like a field access, e.g. `Struct.outer_field.inner_field`"))
-        }
+        _ => Err(syn::Error::new(
+            field_access.span(),
+            "lens!() expression must be structured like a field access, e.g. `Struct.outer_field.inner_field`",
+        )),
     };
 
     // Append the field name

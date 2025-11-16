@@ -10,6 +10,6 @@ macro_rules! compose_lens {
         $head
     };
     { $head:expr, $($tail:expr),+ } => {
-        pl_lens::compose($head, pl_lens::compose_lens!($($tail),+))
+        lens::compose($head, lens::compose_lens!($($tail),+))
     };
 }

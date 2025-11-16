@@ -1,13 +1,13 @@
 //
 // Copyright (c) 2015-2019 Plausible Labs Cooperative, Inc.
 // All rights reserved.
+// Copyright (c) 2025 Julius Foitzik on derivative work.
+// All rights reserved.
 //
-
-extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields, Visibility};
+use syn::{Data, DataStruct, DeriveInput, Fields, Visibility, parse_macro_input};
 
 /// Handles the `#derive(Lenses)` applied to a struct by generating a `Lens` implementation for
 /// each field in the struct.
@@ -40,7 +40,7 @@ pub fn lenses_derive(input: TokenStream) -> TokenStream {
     let lens_visibility = match input.vis {
         Visibility::Public(..) => quote!(pub),
         // TODO: Handle `Crate` and `Restricted` visibliity
-        Visibility::Crate(..) => quote!(),
+        // Visibility::Crate(..) => quote!(),
         Visibility::Restricted(..) => quote!(),
         Visibility::Inherited => quote!(),
     };
@@ -63,7 +63,7 @@ pub fn lenses_derive(input: TokenStream) -> TokenStream {
             let value_lens = if is_primitive(&field.ty) {
                 quote!(
                     #[allow(dead_code)]
-                    impl pl_lens::ValueLens for #lens_name {
+                    impl lens::ValueLens for #lens_name {
                         #[inline(always)]
                         fn get(&self, source: &#struct_name) -> #field_type {
                             (*source).#field_name.clone()
@@ -82,13 +82,13 @@ pub fn lenses_derive(input: TokenStream) -> TokenStream {
 
                 // Include the `Lens` impl
                 #[allow(dead_code)]
-                impl pl_lens::Lens for #lens_name {
+                impl lens::Lens for #lens_name {
                     type Source = #struct_name;
                     type Target = #field_type;
 
                     #[inline(always)]
-                    fn path(&self) -> pl_lens::LensPath {
-                        pl_lens::LensPath::new(#field_index)
+                    fn path(&self) -> lens::LensPath {
+                        lens::LensPath::new(#field_index)
                     }
 
                     #[inline(always)]
@@ -99,7 +99,7 @@ pub fn lenses_derive(input: TokenStream) -> TokenStream {
 
                 // Include the `RefLens` impl
                 #[allow(dead_code)]
-                impl pl_lens::RefLens for #lens_name {
+                impl lens::RefLens for #lens_name {
                     #[inline(always)]
                     fn get_ref<'a>(&self, source: &'a #struct_name) -> &'a #field_type {
                         &(*source).#field_name
@@ -220,6 +220,7 @@ fn is_primitive(ty: &syn::Type) -> bool {
         // XXX: This is quick and dirty; we need a more reliable way to
         // know whether the field is a struct type for which there are
         // lenses derived
+        // TODO(juf): Check if this is up2date and whether &str should be included
         "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" | "u64" | "f32" | "f64" | "String" => {
             true
         }
@@ -228,6 +229,7 @@ fn is_primitive(ty: &syn::Type) -> bool {
 }
 
 // XXX: Lifted from librustc_lint/builtin.rs
+// TODO(juf): check if this is still required to be lifted
 fn to_camel_case(s: &str) -> String {
     s.split('_')
         .flat_map(|word| {

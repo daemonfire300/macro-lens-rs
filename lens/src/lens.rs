@@ -254,7 +254,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pl_lens_derive::Lenses;
+    use lens_derive::Lenses;
 
     #[derive(Clone, Debug, PartialEq, Lenses)]
     struct Struct1 {

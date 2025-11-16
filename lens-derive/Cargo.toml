@@ -1,11 +1,11 @@
 [package]
-name = "pl-lens-derive"
+name = "lens-derive"
 version = "2.0.0"
 edition = "2024"
 authors = ["Chris Campbell <campbell@plausible.coop>", "Julius Foitzik <info@accountr.eu>"]
 license = "MIT"
-description = "Provides procedural `derive` macros that are used in conjuction with the `pl-lens` crate."
-keywords = ["plausible", "lens", "functional"]
+description = "Provides procedural `derive` macros that are used in conjuction with the `lens` crate."
+keywords = ["lens", "functional"]
 homepage = "https://github.com/daemonfire300/lens-rs"
 repository = "https://github.com/daemonfire300/lens-rs"
 readme = "README.md"
