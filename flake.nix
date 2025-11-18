@@ -20,8 +20,15 @@
           stable-rust-analyzer = stable-rust.rust-analyzer;
         in with pkgs;
         mkShell {
-          buildInputs =
-            [ openssl pkg-config eza fd rust-core stable-rust-analyzer ];
+          buildInputs = [
+            openssl
+            pkg-config
+            eza
+            fd
+            rust-core
+            stable-rust-analyzer
+            cargo-expand
+          ];
 
           shellHook = ''
             echo "Entering system-specific shell <$SHELL>"
