@@ -76,7 +76,7 @@ pub fn lens(input: TokenStream) -> TokenStream {
     // Build the output
     // TODO(juf): Maybe we can/should get rid of this (circular), indirect dependency
     let expanded = quote! {
-        lens::compose_lens!(#(#lens_exprs),*);
+        lens::compose_lens!(#(#lens_exprs),*)
     };
 
     // Hand the output tokens back to the compiler
