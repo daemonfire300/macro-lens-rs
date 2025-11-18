@@ -40,6 +40,7 @@ pub fn lenses_derive(input: TokenStream) -> TokenStream {
     let lens_visibility = match input.vis {
         Visibility::Public(..) => quote!(pub),
         // TODO: Handle `Crate` and `Restricted` visibliity
+        // TODO(juf): This is outdated and needs to be reworked
         // Visibility::Crate(..) => quote!(),
         Visibility::Restricted(..) => quote!(),
         Visibility::Inherited => quote!(),

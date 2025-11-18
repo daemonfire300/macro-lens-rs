@@ -32,7 +32,8 @@ fn a_simple_nested_data_structure_should_be_lensable() {
             postcode: "99999".to_string(),
         },
     };
-    assert_eq!(lens!(Person.name).get_ref(&p0), "Pop Zeus");
+    let name_lens = lens!(Person.name);
+    assert_eq!(name_lens.get_ref(&p0), "Pop Zeus");
     assert_eq!(lens!(Person.address.street).get_ref(&p0), "123 Needmore Rd");
 
     let p1 = lens!(Person.address.street).set(p0, "666 Titus Ave".to_string());

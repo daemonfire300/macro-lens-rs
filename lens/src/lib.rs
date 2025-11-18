@@ -4,8 +4,12 @@
 //
 
 // Re-export the pl-lens-derive crate
-pub use lens_derive::*;
+//pub use lens_derive::*;
 
+extern crate self as lens;
+
+mod core;
+mod path;
 /// This is a macro-based shorthand that allows us to write:
 ///
 /// ```text,no_run
@@ -18,11 +22,12 @@ pub use lens_derive::*;
 ///   compose_lens!(SomeStructFooLens, FooBarVecLens, vec_lens::<BarThing>(3), BarThingBazLens)
 /// ```
 // TODO(juf): Re-work so original functionality is restored
+pub use lens_derive::*;
+
+#[macro_use]
+mod macros;
+
 pub use lens_macros::lens;
 
-// The following is necessary to make exported macros visible.
-#[macro_use]
-pub mod macros;
-
-pub mod lens;
-pub mod path;
+pub use core::*;
+pub use path::*;

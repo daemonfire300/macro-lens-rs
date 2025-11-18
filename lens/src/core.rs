@@ -254,9 +254,8 @@ where
 #[cfg(test)]
 mod tests {
     use crate::Lenses;
-    use crate::core;
+    use crate::compose_lens;
     use crate::core::{Lens, RefLens, modify};
-    use crate::macros::compose_lens;
 
     #[derive(Clone, Debug, PartialEq, Lenses)]
     struct Struct1 {
@@ -285,7 +284,7 @@ mod tests {
     #[test]
     fn a_basic_lens_should_work() {
         #[allow(dead_code)]
-        let lens = lens!(Struct3.struct2.struct1.int32);
+        let lens = crate::lens!(Struct3.struct2.struct1.int32);
 
         let s3_0 = Struct3 {
             int32: 332,
