@@ -30,6 +30,7 @@
             cargo-expand
           ];
 
+          # TODO(juf): using exec $SHELL does not really work. nix-shell -c $SHELL works well. Need to dig into why that is the case
           shellHook = ''
             echo "Entering system-specific shell <$SHELL>"
             #exec $SHELL
