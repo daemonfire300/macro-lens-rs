@@ -1,4 +1,4 @@
-# pl-lens
+# macro-lens
 
 [![Build Status][gh-actions-badge]][gh-actions-url]
 [![Crates.io][crates-badge]][crates-url]
@@ -14,7 +14,7 @@
 [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [mit-url]: LICENSE
 
-This Rust library provides support for lenses, which are a mechanism in functional programming for focusing on a part of a complex data structure.
+This Rust library provides support for lenses through macros, which are a mechanism in functional programming for focusing on a part of a complex data structure.
 
 ## Development
 
@@ -28,20 +28,20 @@ Add a dependency to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-pl-lens = "1.0"
+macro-lens = "1.0"
 ```
 
 Then, in your crate:
 
 ```rust
 // To use the `derive(Lenses)` macro
-use pl_lens::Lenses;
+use lens::Lenses;
 
 // To use the `lens!` macro
-use pl_lens::lens;
+use lens::lens;
 
 // To bring trait methods like `get_ref` and `set` into scope
-use pl_lens::{Lens, RefLens};
+use lens::{Lens, RefLens};
 ```
 
 ## Examples
@@ -82,4 +82,8 @@ assert_eq!(lens!(Person.address.street).get_ref(&p1), "666 Titus Ave");
 
 # License
 
-`pl-lens` is distributed under an MIT license.  See LICENSE for more details.
+Now
+`lens` / `macro-lens` is distributed under an MIT license. See LICENSE for more details.
+
+Formerly
+`pl-lens` is distributed under an MIT license. See LICENSE for more details.
