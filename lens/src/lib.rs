@@ -2,9 +2,10 @@
 // Copyright (c) 2015-2019 Plausible Labs Cooperative, Inc.
 // All rights reserved.
 //
-
-// Re-export the pl-lens-derive crate
-//pub use lens_derive::*;
+//
+// Copyright (c) 2025 Julius Foitzik on derivate work
+// All rights reserved.
+//
 
 extern crate self as lens;
 

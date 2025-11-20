@@ -2,8 +2,10 @@
 // Copyright (c) 2015-2019 Plausible Labs Cooperative, Inc.
 // All rights reserved.
 //
-
-// use std::marker::PhantomData;
+//
+// Copyright (c) 2025 Julius Foitzik on derivate work
+// All rights reserved.
+//
 
 pub use crate::path::LensPath;
 

@@ -2,6 +2,10 @@
 // Copyright (c) 2015-2019 Plausible Labs Cooperative, Inc.
 // All rights reserved.
 //
+//
+// Copyright (c) 2025 Julius Foitzik on derivate work
+// All rights reserved.
+//
 
 /// Provides a shorthand for composing a series of lenses.
 
