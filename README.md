@@ -78,13 +78,25 @@ assert_eq!(updated.items[1].value, 7);
 
 ## Development
 
-The repo is flake-based. A typical shell entrypoint is:
+The repo is flake-based. The canonical validation command is:
+
+```sh
+nix flake check --print-build-logs
+```
+
+For a short local alias to the same validation contract, run:
+
+```sh
+nix run .#ci
+```
+
+For interactive development, a typical shell entrypoint is:
 
 ```sh
 nix develop -c zsh
 ```
 
-The flake also exposes build and validation checks for the Rust workspace.
+The flake exposes build and validation checks for the Rust workspace, and GitHub Actions uses the same Nix entrypoints.
 
 ## Publishing
 

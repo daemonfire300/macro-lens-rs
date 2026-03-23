@@ -17,7 +17,12 @@
           extensions = [ "clippy" "rust-analyzer" "rust-src" "rustfmt" ];
         };
         craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
-        src = craneLib.cleanCargoSource ./.;
+        src = pkgs.lib.cleanSourceWith {
+          src = ./.;
+          filter = path: type:
+            (craneLib.filterCargoSources path type)
+            || pkgs.lib.hasSuffix ".stderr" path;
+        };
         commonArgs = {
           inherit src;
           cargoVendorDir = craneLib.vendorCargoDeps {
@@ -37,7 +42,24 @@
           cargoExtraArgs = "--package ${packageName}";
           pname = packageName;
         });
+        ciApp = pkgs.writeShellApplication {
+          name = "ci";
+          runtimeInputs = [ pkgs.nix ];
+          text = ''
+            set -euo pipefail
+            exec nix flake check --print-build-logs "$@"
+          '';
+        };
       in {
+        apps = {
+          ci = {
+            type = "app";
+            program = "${ciApp}/bin/ci";
+            meta.description = "Run the canonical Nix CI checks locally";
+          };
+          default = self.apps.${system}.ci;
+        };
+
         packages = {
           default = mkCrate "macro-lens";
           macro-lens = mkCrate "macro-lens";

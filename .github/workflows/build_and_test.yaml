@@ -3,53 +3,16 @@ name: Build
 on:
   push:
     branches:
-      - jf-new-vibe
       - main
       - master
   pull_request:
+    branches:
+      - main
+      - master
 
 jobs:
-  rust:
-    name: Rust checks
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Cache cargo artifacts
-        uses: Swatinem/rust-cache@v2
-
-      - name: Format
-        run: cargo fmt --all --check
-
-      - name: Lint
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-
-      - name: Test
-        run: cargo test --workspace
-
-      - name: Doc test
-        run: cargo test --workspace --doc
-
-      - name: Package
-        run: |
-          cargo package --list -p macro-lens --allow-dirty
-          cargo package -p macro-lens-derive --allow-dirty --no-verify
-          cargo package -p macro-lens-macros --allow-dirty --no-verify
-
-      - name: Publish dry run
-        run: |
-          cargo publish --dry-run --allow-dirty --no-verify -p macro-lens-derive
-          cargo publish --dry-run --allow-dirty --no-verify -p macro-lens-macros
-
-  nix:
-    name: Nix flake check
+  flake-check:
+    name: Flake check
     runs-on: ubuntu-latest
 
     steps:
@@ -63,4 +26,21 @@ jobs:
         uses: DeterminateSystems/magic-nix-cache-action@v13
 
       - name: Flake check
-        run: nix flake check
+        run: nix flake check --print-build-logs
+
+  nix-run-ci:
+    name: Nix run ci
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v17
+
+      - name: Configure Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v13
+
+      - name: Run local CI entrypoint
+        run: nix run .#ci
