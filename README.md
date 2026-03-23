@@ -1,89 +1,101 @@
 # macro-lens
 
-[![Build Status][gh-actions-badge]][gh-actions-url]
-[![Crates.io][crates-badge]][crates-url]
-[![Docs.rs][docs-badge]][docs-url]
-[![MIT licensed][mit-badge]][mit-url]
+`macro-lens` provides macro-powered lenses for immutable Rust data structures.
 
-[gh-actions-badge]: https://github.com/plausiblelabs/lens-rs/workflows/Build/badge.svg?event=push
-[gh-actions-url]: https://github.com/plausiblelabs/lens-rs/actions?query=workflow%3ABuild+branch%3Amaster
-[crates-badge]: https://img.shields.io/crates/v/pl-lens.svg
-[crates-url]: https://crates.io/crates/pl-lens
-[docs-badge]: https://docs.rs/pl-lens/badge.svg
-[docs-url]: https://docs.rs/pl-lens
-[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
-[mit-url]: LICENSE
+The workspace currently contains three crates:
 
-This Rust library provides support for lenses through macros, which are a mechanism in functional programming for focusing on a part of a complex data structure.
-
-## Development
-
-If you are using nix the current setup is flake-based, because that is what I am most comfortable with. I am open to flake-like setups using npins(?) etc. but I need to gather more experience before switching to that.
-
-I run my dev-setup with `nix develop -c zsh`. Note `nix develop` is the less stable/experimental version of `nix-shell`.
+- `macro-lens`: the main library crate, exported to Rust code as `lens`
+- `macro-lens-derive`: the `#[derive(Lenses)]` proc-macro crate
+- `macro-lens-macros`: the `lens!(...)` proc-macro crate
 
 ## Usage
 
-Add a dependency to your `Cargo.toml`:
+Add the main crate to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-macro-lens = "1.0"
+macro-lens = "2"
 ```
 
-Then, in your crate:
+Then import the re-exported macros and traits from the `lens` library crate:
 
 ```rust
-// To use the `derive(Lenses)` macro
-use lens::Lenses;
-
-// To use the `lens!` macro
-use lens::lens;
-
-// To bring trait methods like `get_ref` and `set` into scope
-use lens::{Lens, RefLens};
+use lens::{Lens, RefLens, Lenses, lens};
 ```
 
-## Examples
-
-A `Lens` can be used to transform a conceptually-immutable data structure by changing only a portion of the data.  Let's demonstrate with an example:
+## Example
 
 ```rust
-#[derive(Lenses)]
+use lens::{Lens, RefLens, Lenses, lens};
+
+#[derive(Clone, Lenses)]
 struct Address {
     street: String,
-    city: String,
-    postcode: String
 }
 
-#[derive(Lenses)]
+#[derive(Clone, Lenses)]
 struct Person {
-    name: String,
-    age: u8,
-    address: Address
+    address: Address,
 }
 
-let p0 = Person {
-    name: "Pop Zeus".to_string(),
-    age: 58,
+let person = Person {
     address: Address {
         street: "123 Needmore Rd".to_string(),
-        city: "Dayton".to_string(),
-        postcode: "99999".to_string()
-    }
+    },
 };
-assert_eq!(lens!(Person.name).get_ref(&p0), "Pop Zeus");
-assert_eq!(lens!(Person.address.street).get_ref(&p0), "123 Needmore Rd");
 
-let p1 = lens!(Person.address.street).set(p0, "666 Titus Ave".to_string());
-assert_eq!(lens!(Person.name).get_ref(&p1), "Pop Zeus");
-assert_eq!(lens!(Person.address.street).get_ref(&p1), "666 Titus Ave");
+let street_lens = lens!(Person.address.street);
+assert_eq!(street_lens.get_ref(&person), "123 Needmore Rd");
+
+let updated = street_lens.set(person, "666 Titus Ave".to_string());
+assert_eq!(updated.address.street, "666 Titus Ave");
 ```
 
-# License
+Vector indexing is supported too:
 
-Now
-`lens` / `macro-lens` is distributed under an MIT license. See LICENSE for more details.
+```rust
+use lens::{Lens, RefLens, Lenses, lens};
 
-Formerly
-`pl-lens` is distributed under an MIT license. See LICENSE for more details.
+#[derive(Clone, Lenses)]
+struct Item {
+    value: u32,
+}
+
+#[derive(Clone, Lenses)]
+struct Container {
+    items: Vec<Item>,
+}
+
+let container = Container {
+    items: vec![Item { value: 1 }, Item { value: 2 }],
+};
+
+let item_lens = lens!(Container.items[1].value);
+assert_eq!(*item_lens.get_ref(&container), 2);
+let updated = item_lens.set(container, 7);
+assert_eq!(updated.items[1].value, 7);
+```
+
+## Development
+
+The repo is flake-based. A typical shell entrypoint is:
+
+```sh
+nix develop -c zsh
+```
+
+The flake also exposes build and validation checks for the Rust workspace.
+
+## Publishing
+
+The release order matters because the main crate depends on the two proc-macro crates:
+
+1. Publish `macro-lens-derive`
+2. Publish `macro-lens-macros`
+3. Publish `macro-lens`
+
+The workspace checks validate `cargo package` for all three crates and `cargo publish --dry-run` for the proc-macro crates. The final `macro-lens` upload can only be fully dry-run against crates.io after the dependency crates are available there at the matching version.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

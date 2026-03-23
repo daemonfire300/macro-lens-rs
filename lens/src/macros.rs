@@ -8,7 +8,6 @@
 //
 
 /// Provides a shorthand for composing a series of lenses.
-
 #[macro_export]
 macro_rules! compose_lens {
     { $head:expr } => {

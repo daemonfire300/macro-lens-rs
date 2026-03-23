@@ -1,58 +1,66 @@
 name: Build
 
-# Run this on pushes to `master`, or when a pull request is opened against `master`
 on:
   push:
     branches:
-    - master
+      - jf-new-vibe
+      - main
+      - master
   pull_request:
-    branches:
-    - master
 
 jobs:
-  test:
-    name: Test on Rust ${{ matrix.rust }}
+  rust:
+    name: Rust checks
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        rust:
-          - stable
-          - beta
-          - nightly
-          - 1.38.0  # MSRV
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
 
-      - name: Install Rust Toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
-          toolchain: ${{ matrix.rust }}
-          override: true
           components: rustfmt, clippy
 
-      - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
 
-      - name: Check Format
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+      - name: Format
+        run: cargo fmt --all --check
 
       - name: Lint
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all --all-targets --all-features -- -D warnings
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
       - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all
+        run: cargo test --workspace
+
+      - name: Doc test
+        run: cargo test --workspace --doc
+
+      - name: Package
+        run: |
+          cargo package --list -p macro-lens --allow-dirty
+          cargo package -p macro-lens-derive --allow-dirty --no-verify
+          cargo package -p macro-lens-macros --allow-dirty --no-verify
+
+      - name: Publish dry run
+        run: |
+          cargo publish --dry-run --allow-dirty --no-verify -p macro-lens-derive
+          cargo publish --dry-run --allow-dirty --no-verify -p macro-lens-macros
+
+  nix:
+    name: Nix flake check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v17
+
+      - name: Configure Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v13
+
+      - name: Flake check
+        run: nix flake check

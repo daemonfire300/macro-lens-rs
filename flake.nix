@@ -1,39 +1,86 @@
 {
-  description = "TODO";
+  description = "Crate packaging and development environment for macro-lens";
 
   inputs = {
+    crane.url = "github:ipetkov/crane";
+    flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
-    flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, rust-overlay, flake-utils, ... }:
+  outputs = { self, crane, flake-utils, nixpkgs, rust-overlay, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs { inherit system overlays; };
-      in {
+        toolchain = pkgs.rust-bin.stable."1.85.1".default.override {
+          extensions = [ "clippy" "rust-analyzer" "rust-src" "rustfmt" ];
+        };
+        craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
+        src = craneLib.cleanCargoSource ./.;
+        commonArgs = {
+          inherit src;
+          cargoVendorDir = craneLib.vendorCargoDeps {
+            cargoLock = ./Cargo.lock;
+            src = ./.;
+          };
+          pname = "macro-lens-workspace";
+          version = "2.0.0";
+          strictDeps = true;
+        };
+        cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {
+          cargoExtraArgs = "--workspace";
+        });
 
-        devShells.default = let
-          stable-rust = pkgs.rust-bin.stable.latest;
-          rust-core = stable-rust.default;
-          stable-rust-analyzer = stable-rust.rust-analyzer;
-        in with pkgs;
-        mkShell {
-          buildInputs = [
-            openssl
-            pkg-config
-            eza
-            fd
-            rust-core
-            stable-rust-analyzer
-            cargo-expand
+        mkCrate = packageName: craneLib.buildPackage (commonArgs // {
+          inherit cargoArtifacts;
+          cargoExtraArgs = "--package ${packageName}";
+          pname = packageName;
+        });
+      in {
+        packages = {
+          default = mkCrate "macro-lens";
+          macro-lens = mkCrate "macro-lens";
+          macro-lens-derive = mkCrate "macro-lens-derive";
+          macro-lens-macros = mkCrate "macro-lens-macros";
+        };
+
+        checks = {
+          inherit (self.packages.${system})
+            macro-lens
+            macro-lens-derive
+            macro-lens-macros;
+
+          cargo-fmt = craneLib.cargoFmt {
+            inherit src;
+          };
+
+          cargo-clippy = craneLib.cargoClippy (commonArgs // {
+            inherit cargoArtifacts;
+            cargoClippyExtraArgs = "--workspace --all-targets --all-features -- -D warnings";
+          });
+
+          cargo-test = craneLib.cargoTest (commonArgs // {
+            inherit cargoArtifacts;
+            cargoExtraArgs = "--workspace";
+          });
+
+          cargo-doc = craneLib.cargoDoc (commonArgs // {
+            inherit cargoArtifacts;
+            cargoDocExtraArgs = "--workspace --no-deps";
+          });
+        };
+
+        devShells.default = pkgs.mkShell {
+          packages = [
+            toolchain
+            pkgs.cargo-expand
+            pkgs.eza
+            pkgs.fd
           ];
 
-          # TODO(juf): using exec $SHELL does not really work. nix-shell -c $SHELL works well. Need to dig into why that is the case
           shellHook = ''
-            echo "Entering system-specific shell <$SHELL>"
-            #exec $SHELL
+            export RUST_SRC_PATH="${toolchain}/lib/rustlib/src/rust/library"
           '';
         };
       });

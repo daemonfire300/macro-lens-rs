@@ -1,15 +1,23 @@
 [package]
-name = "lens"
-version = "2.0.0"
-edition = "2024"
-authors = ["Chris Campbell <campbell@plausible.coop>", "Julius Foitzik <info@accountr.eu>"]
-license = "MIT"
+name = "macro-lens"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
 description = "Provides support for lenses, which are a mechanism in functional programming for focusing on a part of a complex data structure."
-keywords = ["lens", "functional"]
-homepage = "https://github.com/daemonfire300/lens-rs"
-repository = "https://github.com/daemonfire300/lens-rs"
+keywords.workspace = true
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/macro-lens"
 readme = "README.md"
 
+[lib]
+name = "lens"
+
 [dependencies]
-lens-derive = { path = "../lens-derive", version = "2.0.0" }
-lens-macros = { path = "../lens-macros", version = "2.0.0" }
+lens-derive = { package = "macro-lens-derive", path = "../lens-derive", version = "2.0.0" }
+lens-macros = { package = "macro-lens-macros", path = "../lens-macros", version = "2.0.0" }
+
+[dev-dependencies]
+trybuild.workspace = true

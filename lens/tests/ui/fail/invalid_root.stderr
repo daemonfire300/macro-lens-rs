@@ -1,0 +1,5 @@
+error: lens!() expression must start with an unqualified struct name
+ --> tests/ui/fail/invalid_root.rs:9:19
+  |
+9 |     let _ = lens!(crate::Root.value);
+  |                   ^^^^^
