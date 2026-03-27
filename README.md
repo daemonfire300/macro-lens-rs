@@ -98,7 +98,9 @@ nix develop -c zsh
 
 The flake exposes build and validation checks for the Rust workspace, and GitHub Actions uses the same Nix entrypoints.
 
-## Publishing
+## Contribution
+
+### Note on Publishing
 
 The release order matters because the main crate depends on the two proc-macro crates:
 
