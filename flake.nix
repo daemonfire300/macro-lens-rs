@@ -8,20 +8,32 @@
     rust-overlay.url = "github:oxalica/rust-overlay";
   };
 
-  outputs = { self, crane, flake-utils, nixpkgs, rust-overlay, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      crane,
+      flake-utils,
+      nixpkgs,
+      rust-overlay,
+      ...
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs { inherit system overlays; };
-        toolchain = pkgs.rust-bin.stable."1.85.1".default.override {
-          extensions = [ "clippy" "rust-analyzer" "rust-src" "rustfmt" ];
+        toolchain = pkgs.rust-bin.stable.latest.default.override {
+          extensions = [
+            "clippy"
+            "rust-analyzer"
+            "rust-src"
+            "rustfmt"
+          ];
         };
         craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
         src = pkgs.lib.cleanSourceWith {
           src = ./.;
-          filter = path: type:
-            (craneLib.filterCargoSources path type)
-            || pkgs.lib.hasSuffix ".stderr" path;
+          filter = path: type: (craneLib.filterCargoSources path type) || pkgs.lib.hasSuffix ".stderr" path;
         };
         commonArgs = {
           inherit src;
@@ -33,15 +45,23 @@
           version = "2.0.0";
           strictDeps = true;
         };
-        cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {
-          cargoExtraArgs = "--workspace";
-        });
+        cargoArtifacts = craneLib.buildDepsOnly (
+          commonArgs
+          // {
+            cargoExtraArgs = "--workspace";
+          }
+        );
 
-        mkCrate = packageName: craneLib.buildPackage (commonArgs // {
-          inherit cargoArtifacts;
-          cargoExtraArgs = "--package ${packageName}";
-          pname = packageName;
-        });
+        mkCrate =
+          packageName:
+          craneLib.buildPackage (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+              cargoExtraArgs = "--package ${packageName}";
+              pname = packageName;
+            }
+          );
         ciApp = pkgs.writeShellApplication {
           name = "ci";
           runtimeInputs = [ pkgs.nix ];
@@ -50,7 +70,8 @@
             exec nix flake check --print-build-logs "$@"
           '';
         };
-      in {
+      in
+      {
         apps = {
           ci = {
             type = "app";
@@ -71,26 +92,36 @@
           inherit (self.packages.${system})
             macro-lens
             macro-lens-derive
-            macro-lens-macros;
+            macro-lens-macros
+            ;
 
           cargo-fmt = craneLib.cargoFmt {
             inherit src;
           };
 
-          cargo-clippy = craneLib.cargoClippy (commonArgs // {
-            inherit cargoArtifacts;
-            cargoClippyExtraArgs = "--workspace --all-targets --all-features -- -D warnings";
-          });
+          cargo-clippy = craneLib.cargoClippy (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+              cargoClippyExtraArgs = "--workspace --all-targets --all-features -- -D warnings";
+            }
+          );
 
-          cargo-test = craneLib.cargoTest (commonArgs // {
-            inherit cargoArtifacts;
-            cargoExtraArgs = "--workspace";
-          });
+          cargo-test = craneLib.cargoTest (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+              cargoExtraArgs = "--workspace";
+            }
+          );
 
-          cargo-doc = craneLib.cargoDoc (commonArgs // {
-            inherit cargoArtifacts;
-            cargoDocExtraArgs = "--workspace --no-deps";
-          });
+          cargo-doc = craneLib.cargoDoc (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+              cargoDocExtraArgs = "--workspace --no-deps";
+            }
+          );
         };
 
         devShells.default = pkgs.mkShell {
@@ -105,5 +136,6 @@
             export RUST_SRC_PATH="${toolchain}/lib/rustlib/src/rust/library"
           '';
         };
-      });
+      }
+    );
 }
