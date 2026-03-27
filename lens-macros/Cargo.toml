@@ -4,7 +4,6 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
-rust-version.workspace = true
 description = "Temporary crate used to implement the `lens!` procedural macro."
 keywords.workspace = true
 homepage.workspace = true
