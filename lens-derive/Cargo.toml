@@ -1,19 +1,22 @@
 [package]
-name = "pl-lens-derive"
-version = "1.0.1"
-edition = "2018"
-authors = ["Chris Campbell <campbell@plausible.coop>"]
-license = "MIT"
-description = "Provides procedural `derive` macros that are used in conjuction with the `pl-lens` crate."
-keywords = ["plausible", "lens", "functional"]
-homepage = "https://github.com/plausiblelabs/lens-rs"
-repository = "https://github.com/plausiblelabs/lens-rs"
+name = "macro-lens-derive"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Provides procedural `derive` macros that are used in conjuction with the `lens` crate."
+keywords.workspace = true
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/macro-lens-derive"
 readme = "README.md"
 
 [lib]
+name = "lens_derive"
 proc-macro = true
 
 [dependencies]
-proc-macro2 = "1.0"
-quote = "1.0"
-syn = "1.0"
+proc-macro2.workspace = true
+quote.workspace = true
+syn.workspace = true

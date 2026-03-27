@@ -2,125 +2,182 @@
 // Copyright (c) 2015-2019 Plausible Labs Cooperative, Inc.
 // All rights reserved.
 //
-
-extern crate proc_macro;
+// Copyright (c) 2025 Julius Foitzik on derivative work
+// All rights reserved.
+//
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use proc_macro_hack::proc_macro_hack;
 use quote::{format_ident, quote};
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, Expr, ExprField, Member};
+use syn::{Expr, ExprPath, Member, parse_macro_input};
 
-#[proc_macro_hack]
-pub fn lens(input: TokenStream) -> TokenStream {
-    // Parse the input tokens into a syntax tree
-    let expr = parse_macro_input!(input as Expr);
-
-    // Check that the expression is a "named struct field access"
-    let lens_parts: Vec<String>;
-    if let Expr::Field(field_access) = &expr {
-        // Extract the list of lens names
-        match extract_lens_parts(&field_access) {
-            Ok(parts) => {
-                lens_parts = parts;
-            }
-            Err(error) => {
-                return error.to_compile_error().into();
-            }
-        }
-    } else {
-        return syn::Error::new(expr.span(), "lens!() expression must be structured like a field access, e.g. `Struct.outer_field.inner_field`").to_compile_error().into();
-    }
-
-    // At this point we should have at least two parts: the root struct name
-    // and the first field name
-    if lens_parts.len() < 2 {
-        return syn::Error::new(expr.span(), "lens!() expression must be structured like a field access, e.g. `Struct.outer_field.inner_field`").to_compile_error().into();
-    }
-
-    // We can build up the composed lens by concatenating the parts of the
-    // expression (inserting `Lenses` or `_lenses` as needed); this relies
-    // on the fact that the `#derive(Lenses)` macro creates a special
-    // `struct FooLenses` for each source struct that enumerates the
-    // lens type name for each field.
-    //
-    // For example, suppose we have the following lens expression:
-    //     lens!(Struct3.struct2.struct1.int32)
-    //
-    // We extracted the parts into `lens_parts` above, producing:
-    //     ["Struct3", "struct2", "struct1", "int32"]
-    //
-    // Now we can access the lenses and compose them together:
-    //     compose_lens!(
-    //         _Struct3Lenses.struct2,
-    //         _Struct3Lenses.struct2_lenses.struct1,
-    //         _Struct3Lenses.struct2_lenses.struct1_lenses.int32
-    //     )
-    let mut parent_lenses_name = format_ident!("_{}Lenses", lens_parts[0]);
-    let mut child_field_name = format_ident!("{}", lens_parts[1]);
-    let mut base_lens_expr = quote!(#parent_lenses_name);
-    let mut lens_expr = quote!(#base_lens_expr.#child_field_name);
-    let mut lens_exprs: Vec<TokenStream2> = vec![lens_expr.clone()];
-
-    for lens_part in lens_parts.iter().skip(2) {
-        let prev_base_lens_expr = base_lens_expr.clone();
-        let prev_child_field_name = child_field_name.clone();
-        parent_lenses_name = format_ident!("{}_lenses", prev_child_field_name);
-        child_field_name = format_ident!("{}", lens_part);
-        base_lens_expr = quote!(#prev_base_lens_expr.#parent_lenses_name);
-        lens_expr = quote!(#base_lens_expr.#child_field_name);
-        lens_exprs.push(lens_expr.clone());
-    }
-
-    // Build the output
-    let expanded = quote! {
-        pl_lens::compose_lens!(#(#lens_exprs),*);
-    };
-
-    // Hand the output tokens back to the compiler
-    TokenStream::from(expanded)
+#[derive(Clone, Debug)]
+enum LensStep {
+    Field(syn::Ident),
+    Index(Box<Expr>),
 }
 
-/// Given an expression like `Struct1.struct2_field.struct3_field`, recurse until we hit the root
-/// struct and then build a list of lens names that can be passed to `compose_lens!`.
-/// For example, the above expression would result in the following list of identifiers:
-/// ```text,no_run
-///    [Struct1, struct2_field, struct3_field]
-/// ```
-fn extract_lens_parts(field_access: &ExprField) -> Result<Vec<String>, syn::Error> {
-    // Look at the parent to determine if we're at the root, or if this is a chained field access
-    let base_parts = match &*field_access.base {
-        Expr::Path(base_expr_path) => {
-            // We hit the root of the expression; extract the struct name
-            let path_segments = &base_expr_path.path.segments;
-            if path_segments.len() > 1 {
-                Err(syn::Error::new(field_access.span(), "lens!() expression must start with unqualified struct name, e.g. `Struct.outer_field.inner_field`"))
-            } else {
-                let struct_name = path_segments[0].ident.to_string();
-                Ok(vec![struct_name])
+#[derive(Debug)]
+struct ParsedLens {
+    root: syn::Ident,
+    steps: Vec<LensStep>,
+}
+
+#[proc_macro]
+pub fn lens(input: TokenStream) -> TokenStream {
+    let expr = parse_macro_input!(input as Expr);
+
+    match parse_lens_expression(&expr).and_then(expand_lens_expression) {
+        Ok(expanded) => TokenStream::from(expanded),
+        Err(error) => error.to_compile_error().into(),
+    }
+}
+
+fn parse_lens_expression(expr: &Expr) -> Result<ParsedLens, syn::Error> {
+    let mut steps = Vec::new();
+    let root = collect_steps(expr, &mut steps)?;
+    if steps.is_empty() {
+        return Err(syn::Error::new(
+            expr.span(),
+            "lens!() expression must include at least one field access",
+        ));
+    }
+
+    Ok(ParsedLens { root, steps })
+}
+
+fn collect_steps(expr: &Expr, steps: &mut Vec<LensStep>) -> Result<syn::Ident, syn::Error> {
+    match expr {
+        Expr::Field(field_access) => {
+            let root = collect_steps(&field_access.base, steps)?;
+            let field_name = match &field_access.member {
+                Member::Named(field_ident) => field_ident.clone(),
+                Member::Unnamed(_) => {
+                    return Err(syn::Error::new(
+                        field_access.span(),
+                        "lens!() only works with named fields, not tuple indexing",
+                    ));
+                }
+            };
+            steps.push(LensStep::Field(field_name));
+            Ok(root)
+        }
+        Expr::Index(index_expr) => {
+            let root = collect_steps(&index_expr.expr, steps)?;
+            steps.push(LensStep::Index(index_expr.index.clone()));
+            Ok(root)
+        }
+        Expr::Path(path) => parse_root(path),
+        _ => Err(syn::Error::new(
+            expr.span(),
+            "lens!() expression must look like `Root.field` or `Root.field[index].child`",
+        )),
+    }
+}
+
+fn parse_root(path: &ExprPath) -> Result<syn::Ident, syn::Error> {
+    if path.path.segments.len() != 1 {
+        return Err(syn::Error::new(
+            path.span(),
+            "lens!() expression must start with an unqualified struct name",
+        ));
+    }
+
+    Ok(path.path.segments[0].ident.clone())
+}
+
+fn expand_lens_expression(parsed: ParsedLens) -> Result<TokenStream2, syn::Error> {
+    let mut lens_exprs = Vec::with_capacity(parsed.steps.len());
+    let root_lenses = format_ident!("_{}Lenses", parsed.root);
+    let mut current_lenses_expr = quote!(#root_lenses);
+    let mut last_field_context: Option<FieldContext> = None;
+
+    for step in parsed.steps {
+        match step {
+            LensStep::Field(field_name) => {
+                let field_lenses_expr = current_lenses_expr.clone();
+                let field_expr = quote!(#field_lenses_expr.#field_name);
+                lens_exprs.push(field_expr.clone());
+                let item_marker_name = vec_item_marker_name(&field_name);
+                let item_lenses_name = vec_item_lenses_field_name(&field_name);
+                let nested_lenses_name = nested_lenses_field_name(&field_name);
+
+                last_field_context = Some(FieldContext {
+                    item_marker_expr: quote!(#field_lenses_expr.#item_marker_name),
+                    item_lenses_expr: quote!(#field_lenses_expr.#item_lenses_name),
+                });
+                current_lenses_expr = quote!(#field_lenses_expr.#nested_lenses_name);
+            }
+            LensStep::Index(index_expr) => {
+                let Some(field_context) = &last_field_context else {
+                    return Err(syn::Error::new(
+                        index_expr.span(),
+                        "lens!() indexing is only supported immediately after a named field",
+                    ));
+                };
+                let item_marker_expr = field_context.item_marker_expr.clone();
+                let vec_expr = quote!(lens::vec_lens_from_marker(#item_marker_expr, #index_expr));
+                lens_exprs.push(vec_expr);
+                current_lenses_expr = field_context.item_lenses_expr.clone();
+                last_field_context = None;
             }
         }
-        Expr::Field(base_field_access) => {
-            // This is another field access; extract the base portion first
-            extract_lens_parts(&base_field_access)
-        }
-        _ => {
-            Err(syn::Error::new(field_access.span(), "lens!() expression must be structured like a field access, e.g. `Struct.outer_field.inner_field`"))
-        }
-    };
+    }
 
-    // Append the field name
-    base_parts.and_then(|parts| {
-        if let Member::Named(field_ident) = &field_access.member {
-            let mut new_parts = parts;
-            new_parts.push(field_ident.to_string());
-            Ok(new_parts)
-        } else {
-            Err(syn::Error::new(
-                field_access.span(),
-                "lens!() only works with named fields, e.g. `Struct.outer_field.inner_field`",
-            ))
-        }
+    Ok(quote! {
+        lens::compose_lens!(#(#lens_exprs),*)
     })
+}
+
+struct FieldContext {
+    item_marker_expr: TokenStream2,
+    item_lenses_expr: TokenStream2,
+}
+
+fn nested_lenses_field_name(field_name: &syn::Ident) -> syn::Ident {
+    format_ident!("{field_name}_lenses")
+}
+
+fn vec_item_marker_name(field_name: &syn::Ident) -> syn::Ident {
+    format_ident!("{field_name}_item")
+}
+
+fn vec_item_lenses_field_name(field_name: &syn::Ident) -> syn::Ident {
+    format_ident!("{field_name}_item_lenses")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use quote::quote;
+
+    #[test]
+    fn parses_field_and_index_steps() {
+        let expr: Expr = syn::parse2(quote!(Root.items[1].value)).expect("valid expression");
+        let parsed = parse_lens_expression(&expr).expect("parsed lens expression");
+        assert_eq!(parsed.root.to_string(), "Root");
+        assert_eq!(parsed.steps.len(), 3);
+        assert!(matches!(parsed.steps[0], LensStep::Field(_)));
+        assert!(matches!(parsed.steps[1], LensStep::Index(_)));
+        assert!(matches!(parsed.steps[2], LensStep::Field(_)));
+    }
+
+    #[test]
+    fn rejects_qualified_roots() {
+        let expr: Expr = syn::parse2(quote!(crate::Root.value)).expect("valid expression");
+        let error = parse_lens_expression(&expr).expect_err("qualified root should fail");
+        assert!(
+            error
+                .to_string()
+                .contains("must start with an unqualified struct name")
+        );
+    }
+
+    #[test]
+    fn rejects_tuple_fields() {
+        let expr: Expr = syn::parse2(quote!(Root.0)).expect("valid expression");
+        let error = parse_lens_expression(&expr).expect_err("tuple field should fail");
+        assert!(error.to_string().contains("named fields"));
+    }
 }

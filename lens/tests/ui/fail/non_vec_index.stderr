@@ -1,0 +1,28 @@
+error[E0609]: no field `value_item` on type `RootLenses`
+ --> tests/ui/fail/non_vec_index.rs:9:13
+  |
+9 |     let _ = lens!(Root.value[0]);
+  |             ^^^^^^^^^^^^^^^^^^^^ unknown field
+  |
+  = note: this error originates in the macro `lens` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0271]: type mismatch resolving `<VecLens<_> as Lens>::Source == u32`
+ --> tests/ui/fail/non_vec_index.rs:9:13
+  |
+9 |     let _ = lens!(Root.value[0]);
+  |             ^^^^^^^^^^^^^^^^^^^^
+  |             |
+  |             expected `u32`, found `Vec<_>`
+  |             required by a bound introduced by this call
+  |
+  = note: expected type `u32`
+           found struct `Vec<_>`
+note: required by a bound in `compose`
+ --> src/core.rs
+  |
+  | pub fn compose<LHS, RHS>(lhs: LHS, rhs: RHS) -> ComposedLens<LHS, RHS>
+  |        ------- required by a bound in this function
+...
+  |     RHS: Lens<Source = LHS::Target>,
+  |               ^^^^^^^^^^^^^^^^^^^^ required by this bound in `compose`
+  = note: this error originates in the macro `lens` (in Nightly builds, run with -Z macro-backtrace for more info)

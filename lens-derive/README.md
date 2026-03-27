@@ -1,11 +1,13 @@
-# pl-lens-macros
+# macro-lens-derive
 
-Provides the custom `Lenses` derive macro that is used in conjunction with
-the `pl-lens` crate.
+`macro-lens-derive` provides the `#[derive(Lenses)]` procedural macro used by `macro-lens`.
 
-This crate is automatically re-exported by the `pl-lens` crate, so you generally
-don't need to work with it directly.
+In normal usage you should depend on `macro-lens` and import `Lenses` from the re-exported `lens` crate:
 
-# License
+```rust
+use lens::Lenses;
+```
 
-`pl-lens-derive` is distributed under an MIT license.  See LICENSE for more details.
+## License
+
+MIT.
